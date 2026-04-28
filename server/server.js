@@ -5,8 +5,9 @@ import dotenv from "dotenv";
 import faqRoutes from "./routes/faqRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
 
-
 dotenv.config();
+import openai from "./config/openai.js";
+
 
 const app = express();
 

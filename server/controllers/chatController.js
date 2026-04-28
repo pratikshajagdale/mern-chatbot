@@ -1,4 +1,5 @@
 import Faq from "../models/Faq.js";
+import openai from "../config/openai.js";
 
 export const chatWithBot = async (req, res) => {
   try {
@@ -11,6 +12,7 @@ export const chatWithBot = async (req, res) => {
       });
     }
 
+    // Search FAQ first
     const faq = await Faq.findOne(
       {
         $text: { $search: message },
@@ -22,25 +24,47 @@ export const chatWithBot = async (req, res) => {
       score: { $meta: "textScore" },
     });
 
+    // Return FAQ if found
     if (faq) {
       return res.status(200).json({
         success: true,
-        found: true,
+        source: "faq",
         answer: faq.answer,
         question: faq.question,
       });
     }
 
+    // Fallback to OpenAI
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4.1-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a helpful customer support assistant. Answer clearly and concisely.",
+        },
+        {
+          role: "user",
+          content: message,
+        },
+      ],
+      temperature: 0.7,
+      max_tokens: 300,
+    });
+
+    const aiAnswer = completion.choices[0].message.content;
+
     return res.status(200).json({
       success: true,
-      found: false,
-      answer:
-        "Sorry, I couldn't find an answer to that question.",
+      source: "openai",
+      answer: aiAnswer,
     });
   } catch (error) {
+    console.error(error);
+
     res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Something went wrong",
     });
   }
 };
