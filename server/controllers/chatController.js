@@ -11,7 +11,7 @@ const buildContext = (docs) => {
   return docs
     .map(
       (doc) => `Q: ${doc.question}
-A: ${doc.answer}`
+A: ${doc.answer}`,
     )
     .join("\n\n");
 };
@@ -27,24 +27,39 @@ export const chatWithBot = async (req, res) => {
       });
     }
 
-    // 1️⃣ Generate embedding
     const queryEmbedding = await generateEmbedding(message);
 
-    // 2️⃣ Retrieve using cosine similarity
-    const contextDocs = await searchByCosineSimilarity(queryEmbedding);
+    // const contextDocs = await searchByCosineSimilarity(queryEmbedding);
+    const contextDocs = await Faq.aggregate([
+  {
+    $vectorSearch: {
+      index: "faq_index",
+      path: "embedding",
+      queryVector: queryEmbedding,
+      numCandidates: 100,
+      limit: 3
+    }
+  }
+]);
 
-    // 3️⃣ Build context
     const context = buildContext(contextDocs);
 
-    // 4️⃣ Call LLM
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `You are a helpful FAQ assistant.
-Answer ONLY from the provided context.
-If answer is not found, say "I don't have that information."`,
+          content: `
+You are a helpful and friendly customer support assistant.
+
+Use the provided context to answer the user's question.
+
+Rules:
+- Do NOT copy the answer exactly
+- Rewrite the answer in a natural, conversational way
+- Keep it simple and clear
+- If answer is not found, say "I don't have that information"
+`,
         },
         {
           role: "user",

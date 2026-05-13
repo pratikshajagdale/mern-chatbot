@@ -4,10 +4,10 @@ import cors from "cors";
 import dotenv from "dotenv";
 import faqRoutes from "./routes/faqRoutes.js";
 import chatRoutes from "./routes/chatRoutes.js";
+import multiAgentRoutes from "./routes/multiAgentRoutes.js";
 
 dotenv.config();
 import openai from "./config/openai.js";
-
 
 const app = express();
 
@@ -16,6 +16,7 @@ app.use(express.json());
 
 app.use("/api/faqs", faqRoutes);
 app.use("/api/chat", chatRoutes);
+app.use("/api/agents", multiAgentRoutes);
 
 app.get("/", (req, res) => {
   res.send("FAQ Chatbot API Running...");
